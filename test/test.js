@@ -1,58 +1,84 @@
-const test = require('ava');
-const EvEmitter = require('../ev-emitter.js');
+import test from 'node:test'
+import assert from 'node:assert'
 
-test( 'should emitEvent', function( t ) {
+import EvEmitter from '../ev-emitter.js';
+
+test( 'emits signal', () => {
   let emitter = new EvEmitter();
   let didPop;
-  emitter.on( 'pop', function() {
+  emitter.on( 'pop', () => {
     didPop = true;
   } );
-  emitter.emitEvent('pop');
-  t.truthy( didPop, 'event emitted' );
+  emitter.emit('pop');
+  assert( didPop, 'signal emitted' );
 } );
 
-test( 'emitEvent should pass argument to listener', function( t ) {
+test( 'emits signal with arguments forwarded to receiver', () => {
   let emitter = new EvEmitter();
   let result;
-  function onPop( arg ) {
-    result = arg;
+  function onPop( argOne, argTwo ) {
+    result = [ argOne, argTwo ];
   }
   emitter.on( 'pop', onPop );
-  emitter.emitEvent( 'pop', [ 1 ] );
-  t.is( result, 1, 'event emitted, arg passed' );
+  emitter.emit( 'pop', 1, 2 );
+  assert.deepStrictEqual( result, [ 1, 2 ], 'signal emitted, arguments passed' );
 } );
 
-test( 'does not allow same listener to be added', function( t ) {
-  let emitter = new EvEmitter();
-  let ticks = 0;
+test( 'emits signal to applied receiver so it is bound to this', () => {
+  let extender = new (class extends EvEmitter{});
+  let result;
   function onPop() {
-    ticks++;
+    result = this;
   }
+  extender.on( 'pop', onPop );
+  extender.emit( 'pop' );
+  assert.strictEqual( result, extender, 'signal emitted, receiver’s this is signaler' );
+} );
+
+test( 'does not add identical receiver for same signal', () => {
+  const emitter = new EvEmitter();
+  let ticks = 0;
+  const onPop = () => ticks++;
   emitter.on( 'pop', onPop );
   emitter.on( 'pop', onPop );
-  let _onPop = onPop;
+  const _onPop = onPop;
   emitter.on( 'pop', _onPop );
 
-  emitter.emitEvent('pop');
-  t.is( ticks, 1, '1 tick for same listener' );
+  emitter.emit('pop');
+  assert.strictEqual( ticks, 1, '1 tick for same receiver' );
 } );
 
-test( 'should remove listener with .off()', function( t ) {
+test( 'Adds identical receiver for different signals', () => {
+  const emitter = new EvEmitter();
+  let ticks = 0;
+  const onPop = () => ticks++;
+  emitter.on( 'pop', onPop );
+  emitter.on( 'popOff', onPop );
+  const _onPop = onPop;
+  emitter.on( 'pop', _onPop );
+  emitter.on( 'popOff', _onPop );
+
+  emitter.emit('pop');
+  emitter.emit('popOff')
+  assert.strictEqual( ticks, 2, '2 ticks for different signals with same receivers' );
+} );
+
+test( 'removes receiver with off()', () => {
   let emitter = new EvEmitter();
   let ticks = 0;
   function onPop() {
     ticks++;
   }
   emitter.on( 'pop', onPop );
-  emitter.emitEvent('pop');
+  emitter.emit('pop');
   emitter.off( 'pop', onPop );
-  emitter.emitEvent('pop');
-  t.is( ticks, 1, '.off() removed listener' );
+  emitter.emit('pop');
+  assert.strictEqual( ticks, 1, '.off() removed receiver' );
 
   // reset
   let ary = [];
   ticks = 0;
-  emitter.allOff();
+  emitter.reset();
 
   function onPopA() {
     ticks++;
@@ -67,70 +93,65 @@ test( 'should remove listener with .off()', function( t ) {
 
   emitter.on( 'pop', onPopA );
   emitter.on( 'pop', onPopB );
-  emitter.emitEvent('pop'); // a,b
-  emitter.emitEvent('pop'); // a,b - remove onPopA
-  emitter.emitEvent('pop'); // b
+  emitter.emit('pop'); // a,b
+  emitter.emit('pop'); // a,b - remove onPopA
+  emitter.emit('pop'); // b
 
-  t.is( ary.join(','), 'a,b,a,b,b', '.off in listener does not interfer' );
-
+  assert.strictEqual( ary.join(','), 'a,b,a,b,b', '.off in receiver does not interfer' );
 } );
 
-test( 'should handle once()', function( t ) {
+test( 'signals receivers added with once() a single time', () => {
   let emitter = new EvEmitter();
   let ary = [];
 
-  emitter.on( 'pop', function() {
+  emitter.on( 'pop', () => {
     ary.push('a');
   } );
-  emitter.once( 'pop', function() {
+  emitter.once( 'pop', () => {
     ary.push('b');
   } );
-  emitter.on( 'pop', function() {
+  emitter.on( 'pop', () => {
     ary.push('c');
   } );
-  emitter.emitEvent('pop');
-  emitter.emitEvent('pop');
+  emitter.emit('pop');
+  emitter.emit('pop');
 
-  t.is( ary.join(','), 'a,b,c,a,c', 'once listener triggered once' );
+  assert.strictEqual( ary.join(','), 'a,b,c,a,c', 'once receiver triggered once' );
 
+  /** @todo does the rest of this really cover anything that’s not already covered? */
   // reset
-  emitter.allOff();
+  emitter.reset();
   ary = [];
 
-  // add two identical but not === listeners, only do one once
-  emitter.on( 'pop', function() {
-    ary.push('a');
-  } );
-  emitter.once( 'pop', function() {
-    ary.push('a');
-  } );
-  emitter.emitEvent('pop');
-  emitter.emitEvent('pop');
+  // add two receivers with the same effect on one with once().
+  emitter.on( 'pop', () => { ary.push('a'); } );
+  emitter.once( 'pop', () => { ary.push('a'); } );
+  emitter.emit('pop');
+  emitter.emit('pop');
 
-  t.is( ary.join(','), 'a,a,a',
-      'identical listeners do not interfere with once' );
-
+  assert.strictEqual( ary.join(','), 'a,a,a',
+      'receivers with the same effect do not interfere' );
 } );
 
-test( 'does not infinite loop in once()', function( t ) {
+test( 'does not infinite loop in once()', () => {
   let emitter = new EvEmitter();
   let ticks = 0;
   function onPop() {
     ticks++;
     if ( ticks < 4 ) {
-      emitter.emitEvent('pop');
+      emitter.emit('pop');
     }
   }
 
   emitter.once( 'pop', onPop );
-  emitter.emitEvent('pop');
-  t.is( ticks, 1, '1 tick with emitEvent in once' );
+  emitter.emit('pop');
+  assert.strictEqual( ticks, 1, '1 tick with emit in once' );
 } );
 
-test( 'handles emitEvent with no listeners', function( t ) {
+test( 'handles emit with no receivers', () => {
   let emitter = new EvEmitter();
-  t.notThrows( function() {
-    emitter.emitEvent( 'pop', [ 1, 2, 3 ] );
+  assert.doesNotThrow( () => {
+    emitter.emit( 'pop', [ 1, 2, 3 ] );
   } );
 
   function onPop() {}
@@ -138,56 +159,56 @@ test( 'handles emitEvent with no listeners', function( t ) {
   emitter.on( 'pop', onPop );
   emitter.off( 'pop', onPop );
 
-  t.notThrows( function() {
-    emitter.emitEvent( 'pop', [ 1, 2, 3 ] );
+  assert.doesNotThrow( () => {
+    emitter.emit( 'pop', [ 1, 2, 3 ] );
   } );
 
   emitter.on( 'pop', onPop );
-  emitter.emitEvent( 'pop', [ 1, 2, 3 ] );
+  emitter.emit( 'pop', [ 1, 2, 3 ] );
   emitter.off( 'pop', onPop );
 
-  t.notThrows( function() {
-    emitter.emitEvent( 'pop', [ 1, 2, 3 ] );
+  assert.doesNotThrow( () => {
+    emitter.emit( 'pop', [ 1, 2, 3 ] );
   } );
 } );
 
-test( 'removes all listeners after allOff', function( t ) {
+test( 'removes all receivers after reset', () => {
   let emitter = new EvEmitter();
   let ary = [];
-  emitter.on( 'pop', function() {
+  emitter.on( 'pop', () => {
     ary.push('a');
   } );
-  emitter.on( 'pop', function() {
+  emitter.on( 'pop', () => {
     ary.push('b');
   } );
-  emitter.once( 'pop', function() {
+  emitter.once( 'pop', () => {
     ary.push('c');
   } );
 
-  emitter.emitEvent('pop');
-  emitter.allOff();
-  emitter.emitEvent('pop');
+  emitter.emit('pop');
+  emitter.reset();
+  emitter.emit('pop');
 
-  t.is( ary.join(','), 'a,b,c', 'allOff removed listeners' );
+  assert.strictEqual( ary.join(','), 'a,b,c', 'reset removed receivers' );
 } );
 
-test( 'class extends', function( t ) {
+test( 'class extends', () => {
   class Widgey extends EvEmitter {}
 
   let wijjy = new Widgey();
 
-  t.is( typeof wijjy.on, 'function' );
-  t.is( typeof wijjy.off, 'function' );
-  t.is( typeof wijjy.once, 'function' );
+  assert.strictEqual( typeof wijjy.on, 'function' );
+  assert.strictEqual( typeof wijjy.off, 'function' );
+  assert.strictEqual( typeof wijjy.once, 'function' );
 } );
 
-test( 'Object.assign prototype', function( t ) {
+test( 'Object.assign prototype', () => {
   function Thingie() {}
-  Object.assign( Thingie.prototype, EvEmitter.prototype );
+  Object.assign( Thingie.prototype, EvEmitter.mixin );
 
   let thing = new Thingie();
 
-  t.is( typeof thing.on, 'function' );
-  t.is( typeof thing.off, 'function' );
-  t.is( typeof thing.once, 'function' );
+  assert.strictEqual( typeof thing.on, 'function' );
+  assert.strictEqual( typeof thing.off, 'function' );
+  assert.strictEqual( typeof thing.once, 'function' );
 } );
