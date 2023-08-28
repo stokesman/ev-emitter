@@ -5,24 +5,12 @@
   "type": "module",
   "main": "ev-emitter.js",
   "devDependencies": {
-    "eslint": "^7.30.0",
-    "eslint-plugin-metafizzy": "^1.2.1"
+    "eslint": "^8.48.0",
+    "eslint-plugin-jsdoc": "^46.5.0"
   },
   "scripts": {
     "test": "npm run lint && node --test",
     "lint": "npx eslint ."
-  },
-  "eslintConfig": {
-    "plugins": [
-      "metafizzy"
-    ],
-    "extends": "plugin:metafizzy/base",
-    "parserOptions": {
-      "ecmaVersion": 11
-    },
-    "env": {
-      "browser": true
-    }
   },
   "repository": {
     "type": "git",

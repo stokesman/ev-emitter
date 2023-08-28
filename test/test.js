@@ -1,10 +1,11 @@
-import test from 'node:test'
-import assert from 'node:assert'
+/* eslint-disable jsdoc/require-jsdoc */
+import assert from 'node:assert';
+import test from 'node:test';
 
 import EvEmitter from '../ev-emitter.js';
 
 test( 'emits signal', () => {
-  let emitter = new EvEmitter();
+  let emitter = new EvEmitter;
   let didPop;
   emitter.on( 'pop', () => {
     didPop = true;
@@ -14,8 +15,9 @@ test( 'emits signal', () => {
 } );
 
 test( 'emits signal with arguments forwarded to receiver', () => {
-  let emitter = new EvEmitter();
+  let emitter = new EvEmitter;
   let result;
+  /** @type {(argOne: number, argTwo: number)=>void} */
   function onPop( argOne, argTwo ) {
     result = [ argOne, argTwo ];
   }
@@ -25,18 +27,19 @@ test( 'emits signal with arguments forwarded to receiver', () => {
 } );
 
 test( 'emits signal to applied receiver so it is bound to this', () => {
-  let extender = new (class extends EvEmitter{});
-  let result;
-  function onPop() {
-    result = this;
-  }
-  extender.on( 'pop', onPop );
-  extender.emit( 'pop' );
-  assert.strictEqual( result, extender, 'signal emitted, receiver’s this is signaler' );
+  let getThis = () => {};
+  let extender = new class extends EvEmitter {
+    onPop() {
+      getThis = () => this;
+    }
+  };
+  extender.on( 'pop', extender.onPop );
+  extender.emit('pop');
+  assert.strictEqual( getThis(), extender, 'signal emitted, receiver’s this is signaler' );
 } );
 
 test( 'does not add identical receiver for same signal', () => {
-  const emitter = new EvEmitter();
+  const emitter = new EvEmitter;
   let ticks = 0;
   const onPop = () => ticks++;
   emitter.on( 'pop', onPop );
@@ -49,7 +52,7 @@ test( 'does not add identical receiver for same signal', () => {
 } );
 
 test( 'Adds identical receiver for different signals', () => {
-  const emitter = new EvEmitter();
+  const emitter = new EvEmitter;
   let ticks = 0;
   const onPop = () => ticks++;
   emitter.on( 'pop', onPop );
@@ -59,14 +62,14 @@ test( 'Adds identical receiver for different signals', () => {
   emitter.on( 'popOff', _onPop );
 
   emitter.emit('pop');
-  emitter.emit('popOff')
+  emitter.emit('popOff');
   assert.strictEqual( ticks, 2, '2 ticks for different signals with same receivers' );
 } );
 
 test( 'removes receiver with off()', () => {
-  let emitter = new EvEmitter();
+  let emitter = new EvEmitter;
   let ticks = 0;
-  function onPop() {
+  const onPop = () => {
     ticks++;
   }
   emitter.on( 'pop', onPop );
@@ -74,20 +77,21 @@ test( 'removes receiver with off()', () => {
   emitter.off( 'pop', onPop );
   emitter.emit('pop');
   assert.strictEqual( ticks, 1, '.off() removed receiver' );
-
+ 
   // reset
+  /** @type {string[]} */
   let ary = [];
   ticks = 0;
   emitter.reset();
 
-  function onPopA() {
+  const onPopA = () => {
     ticks++;
     ary.push('a');
     if ( ticks == 2 ) {
       emitter.off( 'pop', onPopA );
     }
   }
-  function onPopB() {
+  const onPopB = () => {
     ary.push('b');
   }
 
@@ -101,7 +105,8 @@ test( 'removes receiver with off()', () => {
 } );
 
 test( 'signals receivers added with once() a single time', () => {
-  let emitter = new EvEmitter();
+  let emitter = new EvEmitter;
+  /** @type {string[]} */
   let ary = [];
 
   emitter.on( 'pop', () => {
@@ -124,8 +129,12 @@ test( 'signals receivers added with once() a single time', () => {
   ary = [];
 
   // add two receivers with the same effect on one with once().
-  emitter.on( 'pop', () => { ary.push('a'); } );
-  emitter.once( 'pop', () => { ary.push('a'); } );
+  emitter.on( 'pop', () => {
+    ary.push('a');
+  } );
+  emitter.once( 'pop', () => {
+    ary.push('a');
+  } );
   emitter.emit('pop');
   emitter.emit('pop');
 
@@ -134,27 +143,25 @@ test( 'signals receivers added with once() a single time', () => {
 } );
 
 test( 'does not infinite loop in once()', () => {
-  let emitter = new EvEmitter();
+  let emitter = new EvEmitter;
   let ticks = 0;
-  function onPop() {
+  emitter.once( 'pop', () => {
     ticks++;
     if ( ticks < 4 ) {
       emitter.emit('pop');
     }
-  }
-
-  emitter.once( 'pop', onPop );
+  } );
   emitter.emit('pop');
   assert.strictEqual( ticks, 1, '1 tick with emit in once' );
 } );
 
 test( 'handles emit with no receivers', () => {
-  let emitter = new EvEmitter();
+  let emitter = new EvEmitter;
   assert.doesNotThrow( () => {
     emitter.emit( 'pop', [ 1, 2, 3 ] );
   } );
 
-  function onPop() {}
+  const onPop = () => {};
 
   emitter.on( 'pop', onPop );
   emitter.off( 'pop', onPop );
@@ -173,7 +180,8 @@ test( 'handles emit with no receivers', () => {
 } );
 
 test( 'removes all receivers after reset', () => {
-  let emitter = new EvEmitter();
+  let emitter = new EvEmitter;
+  /** @type {string[]} */
   let ary = [];
   emitter.on( 'pop', () => {
     ary.push('a');
@@ -192,10 +200,15 @@ test( 'removes all receivers after reset', () => {
   assert.strictEqual( ary.join(','), 'a,b,c', 'reset removed receivers' );
 } );
 
+/**
+ * @todo Beyond these basic extenstion tests that follow it'd be cool to group all the
+ * tests above into a group and test all for each extenstion method.
+ */
+
 test( 'class extends', () => {
   class Widgey extends EvEmitter {}
 
-  let wijjy = new Widgey();
+  let wijjy = new Widgey;
 
   assert.strictEqual( typeof wijjy.on, 'function' );
   assert.strictEqual( typeof wijjy.off, 'function' );
@@ -206,7 +219,8 @@ test( 'Object.assign prototype', () => {
   function Thingie() {}
   Object.assign( Thingie.prototype, EvEmitter.mixin );
 
-  let thing = new Thingie();
+  // @ts-ignore
+  let thing = new Thingie;
 
   assert.strictEqual( typeof thing.on, 'function' );
   assert.strictEqual( typeof thing.off, 'function' );
