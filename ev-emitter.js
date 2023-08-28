@@ -4,16 +4,9 @@
  */
 
 /**
- * @todo
- * It would be neat if there were a way to support typing of signals and their receivers
- * arguments. That way langauge servers could suggest and verify signals and arguments.
- * @see https://43081j.com/2020/11/typed-events-in-typescript
+ * Succinct pub/sub pattern.
  */
-
-/**
- * A succinct signaling interface piggybacked on the EventTarget API.
- */
-export default class {
+export default class EvEmitter {
   #core = new EventTarget;
 
   /** @type {Map<Receiver, Map<string, (event: Event) => void>>} */
@@ -86,7 +79,7 @@ export default class {
    */
   off( type, receiver ) {
     const foundTypeMap = this.#receiverMap.get( receiver );
-    if ( ! foundTypeMap ) return;
+    if ( ! foundTypeMap ) return this;
 
     const relay = foundTypeMap.get( type );
     if ( relay ) {

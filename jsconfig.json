@@ -1,0 +1,19 @@
+{
+	"files": [
+		"ev-emitter.js"
+	],
+	"compilerOptions": {
+		"target": "es2018",
+		"module": "NodeNext",
+		"moduleResolution": "nodenext",
+		"allowJs": true,
+		"checkJs": true,
+		"forceConsistentCasingInFileNames": true,
+		"sourceMap": true,
+		"strict": true,
+		"declaration": true,
+		"emitDeclarationOnly": true,
+		"declarationMap": true,
+		"noEmit": false,
+	}
+}

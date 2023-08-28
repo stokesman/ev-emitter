@@ -4,13 +4,16 @@
   "description": "lil' event emitter",
   "type": "module",
   "main": "ev-emitter.js",
+  "types": "ev-emitter.d.ts",
   "devDependencies": {
     "eslint": "^8.48.0",
-    "eslint-plugin-jsdoc": "^46.5.0"
+    "eslint-plugin-jsdoc": "^46.5.0",
+    "typescript": "^5.2.2"
   },
   "scripts": {
     "test": "npm run lint && node --test",
-    "lint": "npx eslint ."
+    "lint": "npx eslint .",
+    "build:types": "npx tsc -p ./jsconfig.json"
   },
   "repository": {
     "type": "git",
