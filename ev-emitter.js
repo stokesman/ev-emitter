@@ -47,35 +47,28 @@ export default class EvEmitter {
    * Adds a callback on a signal.
    * @param {string} type Name of signal.
    * @param {Receiver} receiver Function called when signal dispatches.
-   * @returns The instance.
    */
   on( type, receiver ) {
     this.#add( type, receiver );
-
-    return this;
   }
 
   /**
    * Adds a callback on a signal for a single time.
    * @param {string} type Name of signal.
    * @param {Receiver} receiver Function called when signal dispatches.
-   * @returns The instance.
    */
   once( type, receiver ) {
     this.#add( type, receiver, true );
-
-    return this;
   }
 
   /**
    * Removes a callback on a signal.
    * @param {string} type Name of signal.
    * @param {Receiver} receiver Subscriber function.
-   * @returns The instance.
    */
   off( type, receiver ) {
     const foundTypeMap = this.#receiverMap.get( receiver );
-    if ( ! foundTypeMap ) return this;
+    if ( ! foundTypeMap ) return;
 
     const relay = foundTypeMap.get( type );
     if ( relay ) {
@@ -83,31 +76,23 @@ export default class EvEmitter {
       foundTypeMap.delete( type );
       if ( foundTypeMap.size === 0 ) this.#receiverMap.delete( receiver );
     }
-
-    return this;
   }
 
   /**
    * Sends a signal.
    * @param {string} type Name of signal.
    * @param {any[]} args Arguments to receiver.
-   * @returns The instance.
    */
   emit( type, ...args ) {
     this.#core.dispatchEvent( new CustomEvent( type, { detail: args } ) );
-
-    return this;
   }
 
   /**
    * Removes all signal callbacks.
-   * @returns The instance.
    */
   reset() {
     this.#core = new EventTarget;
     this.#receiverMap = new Map;
-
-    return this;
   }
 
   /**
