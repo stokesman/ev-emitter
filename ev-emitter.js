@@ -95,12 +95,33 @@ export default class EvEmitter {
     this.#receiverMap = new Map;
   }
 
+  /* eslint-disable jsdoc/valid-types */
   /**
-   * Provides public methods.
-   * @returns Public methods of a new instance.
+   * @template {(...args:any[]) => any} T
+   * @typedef {Parameters<T> extends never[] ? never[] : Parameters<T>} OptionalRest
+   */
+  /* eslint-enable jsdoc/valid-types */
+
+  /**
+   * @template {keyof EvEmitter} K
+   * @typedef {(this: EvEmitter, ...args: OptionalRest<EvEmitter[K]> ) => ReturnType<EvEmitter[K]>} BoundMethod
+   */
+
+  /** @typedef {{[Key in keyof EvEmitter]: BoundMethod<Key>}} EvEmitterMixin */
+
+  /**
+   * Provides methods that can be assigned to an object to replicate the public interface
+   * of EvEmitter. These are expected to be assigned to individual instances instead of
+   * to a `prototype` as that will produce instances that share state.
+   * @returns Methods bound to a new instance.
    */
   static get mixin() {
-    const { on, once, off, emit, reset } = new this;
-    return { on, once, off, emit, reset };
+    const instance = new this;
+    /** @type {Partial<EvEmitterMixin>} */
+    const mixin = {};
+    for ( const key of /** @type {(keyof EvEmitter)[]}*/([ 'on', 'once', 'off', 'emit', 'reset' ]) )
+      mixin[ key ] = instance[ key ].bind( instance );
+
+    return /** @type {EvEmitterMixin} */(mixin);
   }
 }
