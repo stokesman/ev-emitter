@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+  - Remove chainable return from methods.
+
 ### Changed
 
   - Rename `emitEvent` to `emit`
   - Convert `emit` second parameter to rest parameter
   - Rename `allOff` to `reset`
   - Support for mix-ins to extend a prototype is through the static `mixin` instead of `prototype`
+  - Invoke callbacks without binding `this`
