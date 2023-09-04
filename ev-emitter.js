@@ -21,11 +21,7 @@ export default class EvEmitter {
   #makeRelay( type, receiver, once ) {
     return /** @type {EventListener} */(( /** @type {CustomEvent} */ event ) => {
       if ( once ) this.off( type, receiver );
-      /**
-       * Applies so that the receiver can access `this`.
-       * @todo Determine if this is more a bug than a feature. Does outlayer depend on it?
-       */
-      receiver.apply( this, event.detail );
+      receiver( ...event.detail );
     } );
   }
 
